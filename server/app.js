@@ -4,6 +4,7 @@ const utils = require('./lib/hashUtils');
 const partials = require('express-partials');
 const Auth = require('./middleware/auth');
 const models = require('./models');
+const parseCookies = require('./middleware/cookieParser');
 
 const app = express();
 
@@ -13,70 +14,111 @@ app.use(partials());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '../public')));
+app.use(parseCookies);
+app.use(Auth.createSession);
 
 
 
-app.get('/', 
-(req, res) => {
-  res.render('index');
-});
+app.get('/',
+  (req, res) => {
+    res.render('index');
+  });
 
-app.get('/create', 
-(req, res) => {
-  res.render('index');
-});
+app.get('/create',
+  (req, res) => {
+    res.render('index');
+  });
 
-app.get('/links', 
-(req, res, next) => {
-  models.Links.getAll()
-    .then(links => {
-      res.status(200).send(links);
-    })
-    .error(error => {
-      res.status(500).send(error);
-    });
-});
-
-app.post('/links', 
-(req, res, next) => {
-  var url = req.body.url;
-  if (!models.Links.isValidUrl(url)) {
-    // send back a 404 if link is not valid
-    return res.sendStatus(404);
-  }
-
-  return models.Links.get({ url })
-    .then(link => {
-      if (link) {
-        throw link;
-      }
-      return models.Links.getUrlTitle(url);
-    })
-    .then(title => {
-      return models.Links.create({
-        url: url,
-        title: title,
-        baseUrl: req.headers.origin
+app.get('/links',
+  (req, res, next) => {
+    models.Links.getAll()
+      .then(links => {
+        res.status(200).send(links);
+      })
+      .error(error => {
+        res.status(500).send(error);
       });
-    })
-    .then(results => {
-      return models.Links.get({ id: results.insertId });
-    })
-    .then(link => {
-      throw link;
-    })
-    .error(error => {
-      res.status(500).send(error);
-    })
-    .catch(link => {
-      res.status(200).send(link);
-    });
-});
+  });
+
+app.post('/links',
+  (req, res, next) => {
+    var url = req.body.url;
+    if (!models.Links.isValidUrl(url)) {
+      // send back a 404 if link is not valid
+      return res.sendStatus(404);
+    }
+
+    return models.Links.get({ url })
+      .then(link => {
+        if (link) {
+          throw link;
+        }
+        return models.Links.getUrlTitle(url);
+      })
+      .then(title => {
+        return models.Links.create({
+          url: url,
+          title: title,
+          baseUrl: req.headers.origin
+        });
+      })
+      .then(results => {
+        return models.Links.get({ id: results.insertId });
+      })
+      .then(link => {
+        throw link;
+      })
+      .error(error => {
+        res.status(500).send(error);
+      })
+      .catch(link => {
+        res.status(200).send(link);
+      });
+  });
 
 /************************************************************/
 // Write your authentication routes here
 /************************************************************/
+// app.post('/links',
+// (req, res, next) => {
+//   var url = req.body.url;
+//   if (!models.Links.isValidUrl(url)) {
+//     // send back a 404 if link is not valid
+//     return res.sendStatus(404);
+//
 
+app.post('/signup', (req, res) => {
+  models.Users.create(req.body)
+    .then(() => res.redirect(301, '/'))
+    .catch((err) => {
+      if (err.code === 'ER_DUP_ENTRY') {
+        res.redirect(301, '/signup').send(err);
+      }
+    });
+});
+
+app.post('/login', (req, res) => {
+  console.log('LOGINNAME   ', req.body);
+  models.Users.get({ 'username': req.body.username })
+    .then((userInfo) => {
+      console.log('USERINGOFIFNO', userInfo);
+      if (userInfo) {
+        console.log('PASWORD RESULT', models.Users.compare(req.body.password, userInfo.password, userInfo.salt));
+        if (models.Users.compare(req.body.password, userInfo.password, userInfo.salt)) {
+          var options = { 'hash': req.session.hash };
+          var values = { 'userId': userInfo.id };
+          models.Sessions.update(options, values)
+            .then(() => res.redirect(301, '/'));
+        }
+      } else {
+        res.redirect(301, '/login');
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+      res.redirect(301, '/login');
+    });
+});
 
 
 /************************************************************/

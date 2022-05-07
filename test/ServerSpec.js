@@ -6,21 +6,24 @@ var httpMocks = require('node-mocks-http');
 var app = require('../server/app.js');
 var schema = require('../server/db/config.js');
 var port = 4568;
-
 /************************************************************/
 // Mocha doesn't have a way to designate pending before blocks.
 // Mimic the behavior of xit and xdescribe with xbeforeEach.
 // Remove the 'x' from beforeEach block when working on
 // authentication tests.
 /************************************************************/
-var xbeforeEach = function() {};
+//var beforeEach = function() {};
 /************************************************************/
 
 
 describe('', function() {
-  var db;
   var server;
-
+  //const db = require('../server/db/index.js');
+  var db = mysql.createConnection({
+    user: 'root',
+    password: '',
+    database: 'shortly'
+  });
   var clearDB = function(connection, tablenames, done) {
     var count = 0;
     tablenames.forEach(function(tablename) {
@@ -38,11 +41,7 @@ describe('', function() {
     /*************************************************************************************/
     /* TODO: Update user and password if different than on your local machine            */
     /*************************************************************************************/
-    db = mysql.createConnection({
-      user: 'student',
-      password: 'student',
-      database: 'shortly'
-    });
+
 
     /**************************************************************************************/
     /* TODO: If you create a new MySQL tables, add it to the tablenames collection below. */
@@ -108,7 +107,7 @@ describe('', function() {
         username: 'Howard',
         password: 'p@ssw0rd'
       };
-      db.query('INSERT INTO users SET ?', newUser, function(error, result) {
+      db.query('INSERT INTO users (username, password) values (?,?)', [newUser.username, newUser.password], function(error, result) {
         var newUserId = result.insertId;
         var otherUser = {
           username: 'Muhammed',
@@ -123,7 +122,7 @@ describe('', function() {
     });
   });
 
-  xdescribe('Account Creation:', function() {
+  describe('Account Creation:', function() {
 
     it('signup creates a new user record', function(done) {
       var options = {
@@ -208,7 +207,7 @@ describe('', function() {
     });
   });
 
-  xdescribe('Account Login:', function() {
+  describe('Account Login:', function() {
 
     beforeEach(function(done) {
       var options = {
@@ -277,7 +276,7 @@ describe('', function() {
     });
   });
 
-  xdescribe('Sessions Schema:', function() {
+  describe('Sessions Schema:', function() {
     it('contains a sessions table', function(done) {
       var queryString = 'SELECT * FROM sessions';
       db.query(queryString, function(err, results) {
@@ -325,7 +324,7 @@ describe('', function() {
     });
   });
 
-  xdescribe('Express Middleware', function() {
+  describe('Express Middleware', function() {
     var cookieParser = require('../server/middleware/cookieParser.js');
     var createSession = require('../server/middleware/auth.js').createSession;
 
@@ -480,7 +479,7 @@ describe('', function() {
     });
   });
 
-  xdescribe('Sessions and cookies', function() {
+  describe('Sessions and cookies', function() {
     var requestWithSession;
     var cookieJar;
 
@@ -610,7 +609,7 @@ describe('', function() {
       }
     };
 
-    xbeforeEach(function(done) {
+    beforeEach(function(done) {
       var options = {
         'method': 'POST',
         'followAllRedirects': true,

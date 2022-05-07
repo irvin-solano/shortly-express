@@ -1,5 +1,5 @@
 const Promise = require('bluebird');
-
+const db = require('./index.js');
 module.exports = (db) => {
   if (!db.queryAsync) {
     db = Promise.promisifyAll(db);
@@ -39,7 +39,7 @@ module.exports = (db) => {
           id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
           hash VARCHAR(64),
           userId INT
-        )`);
+        );`);
     })
     .error(err => {
       console.log(err);
